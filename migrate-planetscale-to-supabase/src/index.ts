@@ -62,12 +62,13 @@ async function main() {
                 <style>
                     body {
                         font-family: sans-serif;
+                        margin-top: 100px;
                         text-align: center;
                     }
                 </style>
             </head>
             <body>
-                <h1>You're all set!</h1>
+                
                 <p>Go back to the terminal to complete the migration.</p>
             </body>
             </html>
