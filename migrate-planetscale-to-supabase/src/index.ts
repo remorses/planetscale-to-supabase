@@ -1,4 +1,5 @@
 // Run `npm start` to start the demo
+import http from 'http'
 import {
     intro,
     outro,
@@ -7,10 +8,14 @@ import {
     spinner,
     isCancel,
     cancel,
+    log,
     text,
 } from '@clack/prompts'
 import { setTimeout as sleep } from 'node:timers/promises'
 import color from 'picocolors'
+
+const websiteUrl =
+    process.env.NEXT_PUBLIC_URL || 'https://supamigrate.vercel.app'
 
 async function main() {
     console.log()
@@ -26,35 +31,67 @@ async function main() {
         return process.exit(0)
     }
 
-    const shouldContinue = await confirm({
-        message: 'Do you want to continue?',
-    })
+    const uri = new URL(`/api/supabase/connect`, websiteUrl)
+    const port = 3434
+    // uri.searchParams.set('redirectUrl', `http://localhost:${port}`)
 
-    if (isCancel(shouldContinue)) {
-        cancel('Operation cancelled')
-        return process.exit(0)
-    }
-
-    const projectType = await select({
-        message: 'Pick a project type.',
-        options: [
-            { value: 'ts', label: 'TypeScript' },
-            { value: 'js', label: 'JavaScript' },
-            { value: 'coffee', label: 'CoffeeScript', hint: 'oh no' },
-        ],
-    })
-
-    if (isCancel(projectType)) {
-        cancel('Operation cancelled')
-        return process.exit(0)
-    }
+    log.info(`Go to ${uri.toString()} to authenticate with Supabase`)
 
     const s = spinner()
-    s.start('Installing via npm')
+    // s.start('Authenticating with Supabase...')
 
-    await sleep(3000)
+    const { accessToken, refreshToken } = await new Promise<any>(
+        (resolve, reject) => {
+            const server = http.createServer((req, res) => {
+                const u = new URL(req.url!, websiteUrl)
+                const accessToken = u.searchParams.get('access_token')
+                const refreshToken = u.searchParams.get('refresh_token')
+                if (!accessToken) {
+                    // console.log('No access token found in request')
+                    return res.end()
+                }
+                // show an html page saying "You're all set! You can close this window now."
 
-    s.stop('Installed via npm')
+                res.writeHead(200, { 'Content-Type': 'text/html' })
+
+                res.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>You're all set!</title>
+                <style>
+                    body {
+                        font-family: sans-serif;
+                        text-align: center;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>You're all set!</h1>
+                <p>Go back to the terminal to complete the migration.</p>
+            </body>
+            </html>
+            `)
+                res.end()
+
+                app.close()
+                resolve({ accessToken, refreshToken })
+            })
+
+            const app = server.listen(port, () => {
+                log.info(`Server running at http://localhost:${port}/`)
+            })
+
+            process.on('SIGINT', () => {
+                app.close()
+            })
+            process.on('SIGTERM', () => {
+                app.close()
+            })
+        },
+    )
+    console.log({ accessToken })
+    s.stop('Authentication complete')
 
     outro("You're all set!")
 

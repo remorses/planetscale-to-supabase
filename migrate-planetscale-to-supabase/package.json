@@ -8,6 +8,7 @@
     "repository": "https://github.com/remorses/",
     "scripts": {
         "build": "tsc && tsc -m es6 --outDir esm",
+        "dev": "doppler run -- tsx src/index.ts",
         "watch": "tsc -w"
     },
     "files": [

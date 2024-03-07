@@ -13,6 +13,8 @@ export const config = {
     runtime: 'edge',
 }
 
+const redirectUrl = `http://localhost:3434`
+
 const handler = async (req: NextRequest) => {
     try {
         const codeVerifier = req.cookies.get(supabaseCodeVerifierKey)?.value
@@ -53,7 +55,10 @@ const handler = async (req: NextRequest) => {
         // console.log('tokens', tokens)
         const { access_token, refresh_token } = tokens
 
-        const res = NextResponse.redirect(state.redirectUrl || `/dashboard`, {})
+        const u = new URL(state.redirectUrl || redirectUrl)
+        u.searchParams.set('access_token', access_token)
+        u.searchParams.set('refresh_token', refresh_token)
+        const res = NextResponse.redirect(u.toString(), {})
         res.cookies.set('supabaseAccessToken', access_token, {
             path: '/',
             httpOnly: false,
