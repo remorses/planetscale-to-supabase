@@ -1,5 +1,8 @@
 // Run `npm start` to start the demo
+import { SupabaseManagementAPI } from 'supabase-management-js'
+
 import http from 'http'
+import { spawn } from 'child_process'
 import {
     intro,
     outro,
@@ -93,6 +96,17 @@ async function main() {
     )
     console.log({ accessToken })
     s.stop('Authentication complete')
+    const client = new SupabaseManagementAPI({
+        accessToken: accessToken,
+    })
+
+    const ref = ''
+    const res = await client.getPostgRESTConfig(ref)
+    
+    const pgsqlConnection = ``
+    await shell(
+        `docker run --rm -it --platform=linux/amd64 ghcr.io/dimitri/pgloader:latest pgloader ${mysqlConnection} ${pgsqlConnection}`,
+    )
 
     outro("You're all set!")
 
@@ -100,3 +114,64 @@ async function main() {
 }
 
 main().catch(console.error)
+
+export function shell(
+    cmd: string,
+    opts?: { cwd?: string; env?: Record<string, string> },
+) {
+    let stdout = '',
+        stderr = '',
+        combined = ''
+    let onStdout = (data: any) => {
+        process.stdout.write(data)
+        stdout += data
+        combined += data
+    }
+    let onStderr = (data: any) => {
+        process.stderr.write(data)
+        stderr += data
+        combined += data
+    }
+
+    const child = spawn(cmd, {
+        ...opts,
+        env: { ...process.env, ...opts?.env },
+        stdio: 'pipe',
+        shell: 'bash',
+    })
+    child.stderr.on('data', onStderr)
+    child.stdout.on('data', onStdout)
+    let killed = false
+    function signalHandler() {
+        killed = true
+        child.kill()
+    }
+    process.on('SIGINT', signalHandler)
+    process.on('SIGTERM', signalHandler)
+    process.on('SIGQUIT', signalHandler)
+    process.on('exit', signalHandler)
+    process.on('uncaughtExceptionMonitor', (e) => {
+        signalHandler()
+    })
+
+    const start = Date.now()
+    return new Promise<void>((resolve, reject) => {
+        // p.on('error', () => reject)
+        child.on('close', (code) => {
+            const end = Date.now()
+            const mins = (end - start) / (1000 * 60)
+
+            if (code === 0) {
+                resolve()
+            } else {
+                if (killed) {
+                    return
+                }
+                const e = new Error(
+                    `Could not run '${cmd.split(' ')[0]}': code ${code}`,
+                )
+                reject(e)
+            }
+        })
+    })
+}

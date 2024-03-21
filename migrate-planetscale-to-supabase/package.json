@@ -21,6 +21,7 @@
     "license": "",
     "dependencies": {
         "@clack/prompts": "^0.7.0",
-        "picocolors": "^1.0.0"
+        "picocolors": "^1.0.0",
+        "supabase-management-js": "^1.0.0"
     }
 }
