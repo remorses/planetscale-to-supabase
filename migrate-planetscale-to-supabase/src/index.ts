@@ -107,7 +107,13 @@ async function main() {
         fs.unlinkSync(configPath)
     }
 
-    let ref =''
+    // extract ref from postgresUrl
+    let ref = ''
+    try {
+        ref = new URL(postgresUrl).hostname!.split('.')[1]
+    } catch (e) {
+        // log.error('Could not extract ref from Postgres connection URI')
+    }
     log.info(`Migration complete! 🎉🎉🎉`)
     outro(
         `Check your new database at https://supabase.com/dashboard/project/${ref}/editor`,
