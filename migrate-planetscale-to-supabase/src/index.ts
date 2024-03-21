@@ -1,4 +1,8 @@
 // Run `npm start` to start the demo
+import path from 'path'
+import os from 'os'
+import fs from 'fs'
+import dedent from 'dedent'
 import { SupabaseManagementAPI } from 'supabase-management-js'
 
 import http from 'http'
@@ -7,6 +11,7 @@ import {
     intro,
     outro,
     confirm,
+    password as promptPassword,
     select,
     spinner,
     isCancel,
@@ -22,26 +27,102 @@ const websiteUrl =
 
 async function main() {
     console.log()
-    intro(color.inverse(' create-my-app '))
 
-    const mysqlConnection = await text({
+    // check that docker is installed
+
+    try {
+        await shell(`docker --version`)
+        console.log('')
+    } catch (e) {
+        throw new Error('Docker is not installed')
+    }
+
+    intro(color.inverse(' Migrate from PlanetScale to Supabase '))
+
+    const _mysqlConnection = await text({
         message: 'What is your PlanetScale connection URI?',
         placeholder: 'mysql://',
     })
-
-    if (isCancel(mysqlConnection)) {
+    if (isCancel(_mysqlConnection)) {
         cancel('Operation cancelled')
         return process.exit(0)
     }
 
+    let mysqlUrl = new URL(_mysqlConnection)
+
+    // remove all query params
+    for (const key of mysqlUrl.searchParams.keys()) {
+        mysqlUrl.searchParams.delete(key)
+    }
+
+    // add ?useSSL=true to make it work with planetscale
+    mysqlUrl.searchParams.set('useSSL', 'true')
+
+    // console.log(mysqlUrl.toString())
+    const mysqlDatabase = mysqlUrl.pathname.replace('/', '')
+
+    // const postgresUrl = await text({
+    //     message: 'What is your Postgres connection URI?',
+    //     placeholder: 'postgres://',
+    // })
+
+    // if (isCancel(postgresUrl)) {
+    //     cancel('Operation cancelled')
+    //     return process.exit(0)
+    // }
+
+    const postgresUrl = await text({
+        message: 'What is your Supabase connection URI?',
+        placeholder: 'postgres://',
+    })
+    if (isCancel(postgresUrl)) {
+        cancel('Operation cancelled')
+        return process.exit(0)
+    }
+
+    const config = dedent`
+    LOAD DATABASE
+        FROM      ${mysqlUrl}
+        INTO      ${postgresUrl}
+
+    WITH include drop, create tables, create indexes, reset sequences, quote identifiers
+
+    ALTER SCHEMA '${mysqlDatabase}' RENAME TO 'public'
+    ;
+    `
+    const tmp = path.resolve(os.tmpdir(), 'pgloader-temp')
+    fs.mkdirSync(tmp, { recursive: true })
+    const configPath = path.resolve(tmp, 'pgloader-config.load')
+
+    log.info('Migrating data from PlanetScale to Supabase...')
+    console.log()
+
+    fs.writeFileSync(configPath, config, 'utf-8')
+    try {
+        await shell(
+            `docker run --rm --platform=linux/amd64 -v ${tmp}:/tmp/pgloader ghcr.io/dimitri/pgloader:latest pgloader --no-ssl-cert-verification /tmp/pgloader/pgloader-config.load`,
+            {},
+        )
+    } finally {
+        fs.unlinkSync(configPath)
+    }
+
+    let ref =''
+    log.info(`Migration complete! 🎉🎉🎉`)
+    outro(
+        `Check your new database at https://supabase.com/dashboard/project/${ref}/editor`,
+    )
+
+    await sleep(1000)
+}
+
+async function getPgUrlWithAuth() {
     const uri = new URL(`/api/supabase/connect`, websiteUrl)
     const port = 3434
-    // uri.searchParams.set('redirectUrl', `http://localhost:${port}`)
 
     log.info(`Go to ${uri.toString()} to authenticate with Supabase`)
-
     const s = spinner()
-    // s.start('Authenticating with Supabase...')
+    s.start()
 
     const { accessToken, refreshToken } = await new Promise<any>(
         (resolve, reject) => {
@@ -71,7 +152,7 @@ async function main() {
                 </style>
             </head>
             <body>
-                
+
                 <p>Go back to the terminal to complete the migration.</p>
             </body>
             </html>
@@ -83,7 +164,7 @@ async function main() {
             })
 
             const app = server.listen(port, () => {
-                log.info(`Server running at http://localhost:${port}/`)
+                // log.info(`Server running at http://localhost:${port}/`)
             })
 
             process.on('SIGINT', () => {
@@ -94,23 +175,58 @@ async function main() {
             })
         },
     )
-    console.log({ accessToken })
+    // console.log({ accessToken })
     s.stop('Authentication complete')
     const client = new SupabaseManagementAPI({
         accessToken: accessToken,
     })
 
-    const ref = ''
-    const res = await client.getPostgRESTConfig(ref)
-    
-    const pgsqlConnection = ``
-    await shell(
-        `docker run --rm -it --platform=linux/amd64 ghcr.io/dimitri/pgloader:latest pgloader ${mysqlConnection} ${pgsqlConnection}`,
-    )
+    const projects = await client.getProjects()
 
-    outro("You're all set!")
+    if (!projects?.length) {
+        throw new Error('No projects found')
+    }
+    let ref = ''
+    if (projects.length === 1) {
+        // ask user if sure, this will copy the data in this database and could cause data loss
+        const sure = await confirm({
+            message: `Data will be migrated to (${projects[0].name}). Are you sure?`,
+        })
+        ref = projects[0].id
+    } else {
+        const chosenRef = await select({
+            message:
+                'Select a project. Data will be migrated to this database.',
+            options: projects.map((p) => {
+                return { label: p.name, value: p.id }
+            }),
+        })
+        if (isCancel(chosenRef)) {
+            cancel('Operation cancelled')
+            return process.exit(0)
+        }
+        ref = chosenRef as string
+    }
 
-    await sleep(1000)
+    // const res = await client.getPostgRESTConfig(ref)
+
+    const pass = await promptPassword({
+        message: `What is your Supabase database password? You can reset it at https://supabase.com/dashboard/project/${ref}/settings/database`,
+    })
+    if (isCancel(pass)) {
+        cancel('Operation cancelled')
+        return process.exit(0)
+    }
+
+    const project = projects.find((p) => p.id === ref)
+    if (!project) {
+        throw new Error('No project found')
+    }
+    // project.database?.host is something like db.ref.supabase.co
+    const region = project.region
+    // https://supabase.com/docs/guides/platform/oauth-apps/build-a-supabase-integration
+    const postgresUrl = `postgres://postgres.${ref}:${pass}@aws-0-${region}.pooler.supabase.com:6543/postgres?sslmode=disable`
+    return postgresUrl
 }
 
 main().catch(console.error)
@@ -137,8 +253,10 @@ export function shell(
         ...opts,
         env: { ...process.env, ...opts?.env },
         stdio: 'pipe',
+
         shell: 'bash',
     })
+
     child.stderr.on('data', onStderr)
     child.stdout.on('data', onStdout)
     let killed = false
@@ -174,4 +292,23 @@ export function shell(
             }
         })
     })
+}
+
+export function quote(arg: string) {
+    if (/^[a-z0-9/_.-]+$/i.test(arg) || arg === '') {
+        return arg
+    }
+    return (
+        `$'` +
+        arg
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/\f/g, '\\f')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t')
+            .replace(/\v/g, '\\v')
+            .replace(/\0/g, '\\0') +
+        `'`
+    )
 }
