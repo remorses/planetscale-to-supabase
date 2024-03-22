@@ -18,7 +18,7 @@ What this project does:
     - add `--no-ssl-cert-verification` to pgloader to not fail with `X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN`
     - add `quote identifiers` to not make all table names lowercase
     - renames the created schema from your Mysql database name to `public` in Postgres
-    - Enable row level security on all tables to not make them accessible to everyone on Supabase
+    - Enable row level security on all tables to prevent making them accessible to everyone
 
 ## Usage
 
