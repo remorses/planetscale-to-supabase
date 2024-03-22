@@ -19,3 +19,26 @@ What this project does:
     - add `quote identifiers` to not make all table names lowercase
     - renames the created schema from your Mysql database name to `public` in Postgres
     - Enable row level security on all tables to not make them accessible to everyone on Supabase
+
+## If you use Prisma
+
+After completing the migration run
+
+```diff
+datasource db {
++    provider     = "postgresql"
+-    provider     = "mysql"
+}
+```
+
+And pull the changes made by the migration
+
+```sh
+prisma db pull
+```
+
+Then check that your current code compiles and runs as expected
+
+## Limitations:
+
+-   If you use Prisma your enums will be renamed with kebab case, this is because Mysql doesn't give names to enums
