@@ -78,7 +78,6 @@ async function main() {
     }
     let postgresUrl = new URL(_postgresUrl)
 
-    // if port is 5432 change it to 6543
     if (postgresUrl.port === '6543') {
         postgresUrl.port = '5432'
     }
