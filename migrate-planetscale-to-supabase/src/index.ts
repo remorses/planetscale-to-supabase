@@ -1,25 +1,24 @@
 // Run `npm start` to start the demo
-import path from 'path'
-import os from 'os'
-import fs from 'fs'
 import dedent from 'dedent'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { SupabaseManagementAPI } from 'supabase-management-js'
 
-import http from 'http'
-import { spawn } from 'child_process'
 import {
-    intro,
-    outro,
+    cancel,
     confirm,
+    intro,
+    isCancel,
+    log,
+    outro,
     password as promptPassword,
     select,
     spinner,
-    isCancel,
-    cancel,
-    log,
     text,
 } from '@clack/prompts'
-import { setTimeout as sleep } from 'node:timers/promises'
+import { spawn } from 'child_process'
+import http from 'http'
 import color from 'picocolors'
 
 const websiteUrl =
@@ -58,18 +57,7 @@ async function main() {
     // add ?useSSL=true to make it work with planetscale
     mysqlUrl.searchParams.set('useSSL', 'true')
 
-    // console.log(mysqlUrl.toString())
     const mysqlDatabase = mysqlUrl.pathname.replace('/', '')
-
-    // const postgresUrl = await text({
-    //     message: 'What is your Postgres connection URI?',
-    //     placeholder: 'postgres://',
-    // })
-
-    // if (isCancel(postgresUrl)) {
-    //     cancel('Operation cancelled')
-    //     return process.exit(0)
-    // }
 
     const postgresUrl = await text({
         message: 'What is your Supabase connection URI?',
@@ -118,8 +106,6 @@ async function main() {
     outro(
         `Check your new database at https://supabase.com/dashboard/project/${ref}/editor`,
     )
-
-    await sleep(1000)
 }
 
 async function getPgUrlWithAuth() {
@@ -298,23 +284,4 @@ export function shell(
             }
         })
     })
-}
-
-export function quote(arg: string) {
-    if (/^[a-z0-9/_.-]+$/i.test(arg) || arg === '') {
-        return arg
-    }
-    return (
-        `$'` +
-        arg
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'")
-            .replace(/\f/g, '\\f')
-            .replace(/\n/g, '\\n')
-            .replace(/\r/g, '\\r')
-            .replace(/\t/g, '\\t')
-            .replace(/\v/g, '\\v')
-            .replace(/\0/g, '\\0') +
-        `'`
-    )
 }
