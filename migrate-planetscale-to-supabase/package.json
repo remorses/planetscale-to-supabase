@@ -22,7 +22,9 @@
     "license": "",
     "dependencies": {
         "@clack/prompts": "^0.7.0",
+        "@types/pg": "^8.11.4",
         "dedent": "^1.5.1",
+        "pg": "^8.11.3",
         "picocolors": "^1.0.0",
         "supabase-management-js": "^1.0.0"
     }

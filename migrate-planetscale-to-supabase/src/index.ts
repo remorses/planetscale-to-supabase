@@ -1,4 +1,6 @@
 // Run `npm start` to start the demo
+import { Client } from 'pg'
+
 import dedent from 'dedent'
 import fs from 'fs'
 import os from 'os'
@@ -49,6 +51,11 @@ async function main() {
 
     let mysqlUrl = new URL(_mysqlConnection)
 
+    // validate mysqlUrl
+    if (mysqlUrl.protocol !== 'mysql:') {
+        throw new Error('Invalid MySQL connection URI')
+    }
+
     // remove all query params
     for (const key of mysqlUrl.searchParams.keys()) {
         mysqlUrl.searchParams.delete(key)
@@ -59,14 +66,39 @@ async function main() {
 
     const mysqlDatabase = mysqlUrl.pathname.replace('/', '')
 
-    const postgresUrl = await text({
+    const _postgresUrl = await text({
         message: 'What is your Supabase connection URI?',
         placeholder: 'postgres://',
     })
-    if (isCancel(postgresUrl)) {
+    if (isCancel(_postgresUrl)) {
         cancel('Operation cancelled')
         return process.exit(0)
     }
+    let postgresUrl = new URL(_postgresUrl)
+
+    // if port is 5432 change it to 6543
+    if (postgresUrl.port === '6543') {
+        postgresUrl.port = '5432'
+    }
+    // validate postgres url
+    if (postgresUrl.protocol !== 'postgres:') {
+        throw new Error('Invalid Postgres connection URI')
+    }
+    // should include pooler.supabase.com
+    if (!postgresUrl.hostname?.includes('pooler.supabase.com')) {
+        throw new Error(
+            'Invalid Postgres connection URI, should include pooler.supabase.com',
+        )
+    }
+
+    if (postgresUrl.hostname)
+        // remove all other params
+        for (const key of postgresUrl.searchParams.keys()) {
+            postgresUrl.searchParams.delete(key)
+        }
+
+    // add sslmode=disable to make it work with pgloader
+    postgresUrl.searchParams.set('sslmode', 'disable')
 
     const config = dedent`
     LOAD DATABASE
@@ -98,10 +130,25 @@ async function main() {
     // extract ref from postgresUrl
     let ref = ''
     try {
-        ref = new URL(postgresUrl).hostname!.split('.')[1]
+        ref = postgresUrl.username.split('.')[1]
     } catch (e) {
         // log.error('Could not extract ref from Postgres connection URI')
     }
+
+    const pgClient = new Client(postgresUrl.toString())
+    await pgClient.connect()
+
+    await pgClient.query(`DO $$
+    DECLARE
+        r RECORD;
+    BEGIN
+        FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+        LOOP
+            EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' ENABLE ROW LEVEL SECURITY;';
+        END LOOP;
+    END$$`)
+
+    await pgClient.end()
     log.info(`Migration complete! 🎉🎉🎉`)
     outro(
         `Check your new database at https://supabase.com/dashboard/project/${ref}/editor`,

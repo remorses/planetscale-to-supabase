@@ -3,9 +3,19 @@
     <br/>
     <img src='' width='320px'>
     <br/>
-    <h3>Template</h3>
-    <p>project under development</p>
+    <h3>migrate-planetscale-to-supabase</h3>
+    <p></p>
     <br/>
     <br/>
 </div>
 
+What this project does:
+
+1. Takes your Mysql and Postgres connection strings
+1. Calls pgloader via Docker to migrate your schema and data
+1. There are some magic options required to do so:
+    - add `useSSL=true` to your Mysql connection string
+    - add `--no-ssl-cert-verification` to pgloader to not fail with `X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN`
+    - add `quote identifiers` to not make all table names lowercase
+    - renames the created schema from your Mysql database name to `public` in Postgres
+    - Enable row level security on all tables to not make them accessible to everyone on Supabase
