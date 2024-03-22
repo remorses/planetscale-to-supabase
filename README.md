@@ -4,7 +4,7 @@
     <img src='' width='320px'>
     <br/>
     <h3>migrate-planetscale-to-supabase</h3>
-    <p></p>
+    <p>**I found all the pgloader options so you don't have to**</p>
     <br/>
     <br/>
 </div>
