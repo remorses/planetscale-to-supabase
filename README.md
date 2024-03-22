@@ -41,6 +41,8 @@ pscale database --org org dump database branch --output ./dump
 docker compose up
 ```
 
+> If from some reason you need to recreate the Mysql database, you can do so with `docker compose down -v`, This will recreate the database with the dump
+
 1. Run the migration with
 
 ```sh
