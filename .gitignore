@@ -5,3 +5,5 @@ esm
 *.tsbuildinfo
 .ultra.cache.json
 coverage
+pscale_dump_main_main
+dump

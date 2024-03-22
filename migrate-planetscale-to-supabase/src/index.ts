@@ -41,14 +41,16 @@ async function main() {
 
     intro(color.inverse(' Migrate from PlanetScale to Supabase '))
 
-    const _mysqlConnection = await text({
-        message: 'What is your PlanetScale connection URI?',
-        placeholder: 'mysql://',
-    })
-    if (isCancel(_mysqlConnection)) {
-        cancel('Operation cancelled')
-        return process.exit(0)
-    }
+    // const _mysqlConnection = await text({
+    //     message: 'What is your PlanetScale connection URI?',
+    //     placeholder: 'mysql://',
+    // })
+    // if (isCancel(_mysqlConnection)) {
+    //     cancel('Operation cancelled')
+    //     return process.exit(0)
+    // }
+
+    const _mysqlConnection = `mysql://user:password@host.docker.internal:3306/db`
 
     let mysqlUrl = new URL(_mysqlConnection)
 
@@ -63,7 +65,7 @@ async function main() {
     }
 
     // add ?useSSL=true to make it work with planetscale
-    mysqlUrl.searchParams.set('useSSL', 'true')
+    // mysqlUrl.searchParams.set('useSSL', 'true')
 
     const mysqlDatabase = mysqlUrl.pathname.replace('/', '')
 
@@ -105,7 +107,12 @@ async function main() {
         FROM      ${mysqlUrl}
         INTO      ${postgresUrl}
 
-    WITH include drop, create tables, create indexes, reset sequences, quote identifiers
+
+    WITH include drop, create tables, create indexes, reset sequences, quote identifiers, 
+    batch rows = 1000,
+    batch size = 500 MB,
+    prefetch rows = 1000
+
 
     ALTER SCHEMA '${mysqlDatabase}' RENAME TO 'public'
     ;
@@ -120,7 +127,7 @@ async function main() {
     fs.writeFileSync(configPath, config, 'utf-8')
     try {
         await shell(
-            `docker run --rm --platform=linux/amd64 -v ${tmp}:/tmp/pgloader ghcr.io/dimitri/pgloader:latest pgloader --no-ssl-cert-verification /tmp/pgloader/pgloader-config.load`,
+            `docker run --network="host" --rm --platform=linux/amd64 -v ${tmp}:/tmp/pgloader ghcr.io/dimitri/pgloader:latest pgloader --no-ssl-cert-verification /tmp/pgloader/pgloader-config.load`,
             {},
         )
     } finally {
