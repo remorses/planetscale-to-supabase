@@ -5,10 +5,11 @@
     "main": "dist/index.js",
     "module": "esm/index.js",
     "types": "dist/index.d.ts",
-    "repository": "https://github.com/remorses/",
+    "repository": "https://github.com/remorses/migrate-planetscale-to-supabase",
     "bin": "dist/index.js",
     "scripts": {
-        "build": "tsc && tsc -m es6 --outDir esm",
+        "build": "tsc",
+        "prepublishOnly": "tsc && cp ../README.md ./README.md && chmod +x ./dist/index.js",
         "dev": "doppler run -- tsx src/index.ts",
         "watch": "tsc -w"
     },

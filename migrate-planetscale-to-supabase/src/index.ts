@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // Run `npm start` to start the demo
 import { Client } from 'pg'
 
