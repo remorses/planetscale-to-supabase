@@ -44,6 +44,10 @@ prisma db pull
 
 Then check that your current code compiles and runs as expected
 
+## How to migrate branches?
+
+You can create a different Supabase project for each branch. Supabase has alpha branching support, but i would advise against using it now as it currently depends on a Github App integration.
+
 ## Limitations:
 
 -   If you use Prisma, your enums and indexes will be renamed with kebab case, this is because Mysql doesn't give names to enums
