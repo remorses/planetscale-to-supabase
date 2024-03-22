@@ -46,4 +46,4 @@ Then check that your current code compiles and runs as expected
 
 ## Limitations:
 
--   If you use Prisma your enums will be renamed with kebab case, this is because Mysql doesn't give names to enums
+-   If you use Prisma, your enums and indexes will be renamed with kebab case, this is because Mysql doesn't give names to enums
