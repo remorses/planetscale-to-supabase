@@ -20,6 +20,12 @@ What this project does:
     - renames the created schema from your Mysql database name to `public` in Postgres
     - Enable row level security on all tables to not make them accessible to everyone on Supabase
 
+## Usage
+
+```sh
+npx migrate-planetscale-to-supabase
+```
+
 ## If you use Prisma
 
 After completing the migration run
