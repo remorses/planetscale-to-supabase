@@ -14,11 +14,10 @@ What this project does:
 1. Runs a local Mysql database seeded with your dump
 1. Migrates your Mysql database to a Supabase Postgres database with Pgloader
 1. Calls pgloader via Docker to migrate your schema and data, there are some magic options required to do so:
-    - add `useSSL=true` to your Mysql connection string
     - add `--no-ssl-cert-verification` to pgloader to not fail with `X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN`
     - add `quote identifiers` to not make all table names lowercase
     - renames the created schema from your Mysql database name to `public` in Postgres
-    - Enable row level security on all tables to prevent making them accessible to everyone
+    - enable row level security on all tables to prevent making them accessible to everyone
 
 ## Why not use pgloader directly on the repote Mysql database?
 
