@@ -3,6 +3,7 @@
     "private": true,
     "scripts": {
         "test": "NODE_ENV=test vitest",
+        "dev": "pnpm --filter migrate-planetscale-to-supabase dev",
         "watch": "pnpm -r watch",
         "build": "pnpm -r build",
         "release": "pnpm build && changeset"
@@ -20,3 +21,5 @@
     "license": "",
     "dependencies": {}
 }
+
+

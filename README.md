@@ -33,7 +33,7 @@ Because Planetscale doesn't let you fetch more than 100000 rows at a time, throw
     pscale database --org org dump database branch --output ./dump
     ```
 
-1. Run a local Mysql database seeded with your dump with
+1. Run a local Mysql database seeded with your dump with. Wait until all sql files are loaded and keep the process running in the background for the next step.
 
     ```sh
     # must be inside this repository folder
@@ -42,7 +42,7 @@ Because Planetscale doesn't let you fetch more than 100000 rows at a time, throw
 
     > If for some reason you need to recreate the Mysql database, you can do so with `docker compose down -v`, This will recreate the database with the dump
 
-1. Run the migration with
+1. Run the migration with this code. This runs the following [file](./migrate-planetscale-to-supabase/src/index.ts)
 
     ```sh
     npx migrate-planetscale-to-supabase
