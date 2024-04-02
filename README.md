@@ -19,7 +19,7 @@ What this project does:
     - renames the created schema from your Mysql database name to `public` in Postgres
     - enable row level security on all tables to prevent making them accessible to everyone
 
-## Why not use pgloader directly on the repote Mysql database?
+## Why not use pgloader directly on the remote Mysql database?
 
 Because Planetscale doesn't let you fetch more than 100000 rows at a time, throwing the error `Row count exceeded 100000`
 
