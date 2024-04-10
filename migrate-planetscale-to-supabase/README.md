@@ -14,13 +14,12 @@ What this project does:
 1. Runs a local Mysql database seeded with your dump
 1. Migrates your Mysql database to a Supabase Postgres database with Pgloader
 1. Calls pgloader via Docker to migrate your schema and data, there are some magic options required to do so:
-    - add `useSSL=true` to your Mysql connection string
     - add `--no-ssl-cert-verification` to pgloader to not fail with `X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN`
     - add `quote identifiers` to not make all table names lowercase
     - renames the created schema from your Mysql database name to `public` in Postgres
-    - Enable row level security on all tables to prevent making them accessible to everyone
+    - enable row level security on all tables to prevent making them accessible to everyone
 
-## Why not use pgloader directly on the repote Mysql database?
+## Why not use pgloader directly on the remote Mysql database?
 
 Because Planetscale doesn't let you fetch more than 100000 rows at a time, throwing the error `Row count exceeded 100000`
 
@@ -30,24 +29,24 @@ Because Planetscale doesn't let you fetch more than 100000 rows at a time, throw
 
 1. Dump your Planetscale database to a folder locally with
 
-```
-pscale database --org org dump database branch --output ./dump
-```
+    ```
+    pscale database --org org dump database branch --output ./dump
+    ```
 
-1. Run a local Mysql database seeded with your dump with
+1. Run a local Mysql database seeded with your dump with. Wait until all sql files are loaded and keep the process running in the background for the next step.
 
-```sh
-# must be inside this repository folder
-docker compose up
-```
+    ```sh
+    # must be inside this repository folder
+    docker compose up
+    ```
 
-> If from some reason you need to recreate the Mysql database, you can do so with `docker compose down -v`, This will recreate the database with the dump
+    > If for some reason you need to recreate the Mysql database, you can do so with `docker compose down -v`, This will recreate the database with the dump
 
-1. Run the migration with
+1. Run the migration with this code. This runs the following [file](./migrate-planetscale-to-supabase/src/index.ts)
 
-```sh
-npx migrate-planetscale-to-supabase
-```
+    ```sh
+    npx migrate-planetscale-to-supabase
+    ```
 
 ## If you use Prisma
 
