@@ -299,8 +299,7 @@ export function shell(
         ...opts,
         env: { ...process.env, ...opts?.env },
         stdio: 'pipe',
-
-        shell: 'bash',
+        shell: true,
     })
 
     child.stderr.on('data', onStderr)
