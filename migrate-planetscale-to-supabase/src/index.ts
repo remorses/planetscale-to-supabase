@@ -6,26 +6,10 @@ import dedent from 'dedent'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { SupabaseManagementAPI } from 'supabase-management-js'
 
-import {
-    cancel,
-    confirm,
-    intro,
-    isCancel,
-    log,
-    outro,
-    password as promptPassword,
-    select,
-    spinner,
-    text,
-} from '@clack/prompts'
+import { cancel, intro, isCancel, log, outro, text } from '@clack/prompts'
 import { spawn } from 'child_process'
-import http from 'http'
 import color from 'picocolors'
-
-const websiteUrl =
-    process.env.NEXT_PUBLIC_URL || 'https://supamigrate.vercel.app'
 
 async function main() {
     console.log()
@@ -41,17 +25,6 @@ async function main() {
 
     intro(color.inverse(' Migrate from PlanetScale to Supabase '))
 
-    // const _mysqlConnection = await text({
-    //     message: 'What is your PlanetScale connection URI?',
-    //     placeholder: 'mysql://',
-    // })
-    // if (isCancel(_mysqlConnection)) {
-    //     cancel('Operation cancelled')
-    //     return process.exit(0)
-    // }
-
-
-
     let mysqlUrl = new URL(`mysql://user:password@localhost:3306/db`)
 
     // validate mysqlUrl
@@ -63,9 +36,6 @@ async function main() {
     for (const key of mysqlUrl.searchParams.keys()) {
         mysqlUrl.searchParams.delete(key)
     }
-
-    // add ?useSSL=true to make it work with planetscale
-    // mysqlUrl.searchParams.set('useSSL', 'true')
 
     const mysqlDatabase = mysqlUrl.pathname.replace('/', '')
 
@@ -83,7 +53,10 @@ async function main() {
         postgresUrl.port = '5432'
     }
     // validate postgres url
-    if (postgresUrl.protocol !== 'postgres:' && postgresUrl.protocol !== 'postgresql:') {
+    if (
+        postgresUrl.protocol !== 'postgres:' &&
+        postgresUrl.protocol !== 'postgresql:'
+    ) {
         throw new Error('Invalid Postgres connection URI')
     }
     // should include pooler.supabase.com
@@ -161,120 +134,6 @@ async function main() {
         `Check your new database at https://supabase.com/dashboard/project/${ref}/editor`,
     )
 }
-
-async function getPgUrlWithAuth() {
-    const uri = new URL(`/api/supabase/connect`, websiteUrl)
-    const port = 3434
-
-    log.info(`Go to ${uri.toString()} to authenticate with Supabase`)
-    const s = spinner()
-    s.start()
-
-    const { accessToken, refreshToken } = await new Promise<any>(
-        (resolve, reject) => {
-            const server = http.createServer((req, res) => {
-                const u = new URL(req.url!, websiteUrl)
-                const accessToken = u.searchParams.get('access_token')
-                const refreshToken = u.searchParams.get('refresh_token')
-                if (!accessToken) {
-                    // console.log('No access token found in request')
-                    return res.end()
-                }
-                // show an html page saying "You're all set! You can close this window now."
-
-                res.writeHead(200, { 'Content-Type': 'text/html' })
-
-                res.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>You're all set!</title>
-                <style>
-                    body {
-                        font-family: sans-serif;
-                        margin-top: 100px;
-                        text-align: center;
-                    }
-                </style>
-            </head>
-            <body>
-
-                <p>Go back to the terminal to complete the migration.</p>
-            </body>
-            </html>
-            `)
-                res.end()
-
-                app.close()
-                resolve({ accessToken, refreshToken })
-            })
-
-            const app = server.listen(port, () => {
-                // log.info(`Server running at http://localhost:${port}/`)
-            })
-
-            process.on('SIGINT', () => {
-                app.close()
-            })
-            process.on('SIGTERM', () => {
-                app.close()
-            })
-        },
-    )
-    // console.log({ accessToken })
-    s.stop('Authentication complete')
-    const client = new SupabaseManagementAPI({
-        accessToken: accessToken,
-    })
-
-    const projects = await client.getProjects()
-
-    if (!projects?.length) {
-        throw new Error('No projects found')
-    }
-    let ref = ''
-    if (projects.length === 1) {
-        // ask user if sure, this will copy the data in this database and could cause data loss
-        const sure = await confirm({
-            message: `Data will be migrated to (${projects[0].name}). Are you sure?`,
-        })
-        ref = projects[0].id
-    } else {
-        const chosenRef = await select({
-            message:
-                'Select a project. Data will be migrated to this database.',
-            options: projects.map((p) => {
-                return { label: p.name, value: p.id }
-            }),
-        })
-        if (isCancel(chosenRef)) {
-            cancel('Operation cancelled')
-            return process.exit(0)
-        }
-        ref = chosenRef as string
-    }
-
-    // const res = await client.getPostgRESTConfig(ref)
-
-    const pass = await promptPassword({
-        message: `What is your Supabase database password? You can reset it at https://supabase.com/dashboard/project/${ref}/settings/database`,
-    })
-    if (isCancel(pass)) {
-        cancel('Operation cancelled')
-        return process.exit(0)
-    }
-
-    const project = projects.find((p) => p.id === ref)
-    if (!project) {
-        throw new Error('No project found')
-    }
-    // project.database?.host is something like db.ref.supabase.co
-    const region = project.region
-    // https://supabase.com/docs/guides/platform/oauth-apps/build-a-supabase-integration
-    const postgresUrl = `postgres://postgres.${ref}:${pass}@aws-0-${region}.pooler.supabase.com:6543/postgres?sslmode=disable`
-    return postgresUrl
-}
-
 main().catch(console.error)
 
 export function shell(
