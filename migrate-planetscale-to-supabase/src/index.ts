@@ -83,7 +83,7 @@ async function main() {
         postgresUrl.port = '5432'
     }
     // validate postgres url
-    if (postgresUrl.protocol !== 'postgres:') {
+    if (postgresUrl.protocol !== 'postgres:' && postgresUrl.protocol !== 'postgresql:') {
         throw new Error('Invalid Postgres connection URI')
     }
     // should include pooler.supabase.com
