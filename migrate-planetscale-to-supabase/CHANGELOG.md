@@ -1,5 +1,11 @@
 # migrate-planetscale-to-supabase
 
+## 0.0.4
+
+### Patch Changes
+
+- Support postgresql://
+
 ## 0.0.3
 
 ### Patch Changes
