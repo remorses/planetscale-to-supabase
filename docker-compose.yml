@@ -1,7 +1,7 @@
 version: '3.3'
 services:
     db:
-        image: mysql
+        image: mysql:8.0-oraclelinux8
         restart: always
         command: mysqld --default-authentication-plugin=mysql_native_password
 

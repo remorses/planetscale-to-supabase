@@ -50,9 +50,9 @@ async function main() {
     //     return process.exit(0)
     // }
 
-    const _mysqlConnection = `mysql://user:password@host.docker.internal:3306/db`
 
-    let mysqlUrl = new URL(_mysqlConnection)
+
+    let mysqlUrl = new URL(`mysql://user:password@localhost:3306/db`)
 
     // validate mysqlUrl
     if (mysqlUrl.protocol !== 'mysql:') {
